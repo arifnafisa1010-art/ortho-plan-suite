@@ -394,12 +394,12 @@ export function VBTCamera({ onRepsChange }: Props) {
       setCalibLine({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
       e.currentTarget.setPointerCapture(e.pointerId);
     } else if (roiOn && roiEdit) {
-      const half = roiSize / 2;
-      const nearCorner =
-        Math.hypot(p.x - (roiCenter.x + half), p.y - (roiCenter.y + half)) < 22 ||
-        Math.hypot(p.x - (roiCenter.x - half), p.y - (roiCenter.y - half)) < 22;
-      roiDragRef.current = nearCorner ? 'resize' : 'move';
-      if (!nearCorner) setRoiCenter(p);
+      const r = roiSize / 2;
+      const dist = Math.hypot(p.x - roiCenter.x, p.y - roiCenter.y);
+      // dekat lingkaran tepi -> ubah ukuran, di dalam -> geser
+      const nearEdge = Math.abs(dist - r) < Math.max(14, r * 0.25);
+      roiDragRef.current = nearEdge ? 'resize' : 'move';
+      if (!nearEdge) setRoiCenter(p);
       e.currentTarget.setPointerCapture(e.pointerId);
     } else {
       pickColor(p.x, p.y);
@@ -413,11 +413,12 @@ export function VBTCamera({ onRepsChange }: Props) {
       if (roiDragRef.current === 'move') {
         setRoiCenter(p);
       } else {
-        const d = Math.max(Math.abs(p.x - roiCenter.x), Math.abs(p.y - roiCenter.y)) * 2;
-        setRoiSize(Math.round(Math.min(480, Math.max(30, d))));
+        const d = Math.hypot(p.x - roiCenter.x, p.y - roiCenter.y) * 2;
+        setRoiSize(Math.round(Math.min(480, Math.max(20, d))));
       }
       return;
     }
+
     if (!calibMode || !calibStartRef.current) return;
     const s = calibStartRef.current;
     setCalibLine({ x1: s.x, y1: s.y, x2: p.x, y2: p.y });
