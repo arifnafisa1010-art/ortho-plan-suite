@@ -556,9 +556,36 @@ export function VBTCamera({ onRepsChange }: Props) {
             {active && !target && !calibMode && (
               <div className="absolute bottom-2 left-2 right-2 rounded-md bg-background/85 px-3 py-2 text-xs">
                 Ketuk area marker (stiker warna terang) pada gambar untuk mengunci warna.
-              </div>
-            )}
           </div>
+
+          {mode === 'video' && videoName && (
+            <div className="space-y-2 rounded-lg border p-3">
+              <div className="flex items-center gap-2">
+                <Button size="icon" variant="outline" onClick={togglePlay}>
+                  {vPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+                </Button>
+                <Button size="icon" variant="outline" onClick={() => seekTo(0)}>
+                  <SkipBack className="h-4 w-4" />
+                </Button>
+                <Slider
+                  className="flex-1"
+                  value={[Math.min(vTime, vDur || 0)]}
+                  min={0}
+                  max={vDur || 0.001}
+                  step={0.05}
+                  onValueChange={([v]) => seekTo(v)}
+                />
+                <span className="w-20 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+                  {fmtTime(vTime)} / {fmtTime(vDur)}
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Jeda video untuk mengatur area marker & mengukur diameter plate dengan presisi.
+              </p>
+            </div>
+          )}
+
+
 
 
           {error && (
