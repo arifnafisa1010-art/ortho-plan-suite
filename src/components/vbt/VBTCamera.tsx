@@ -749,19 +749,37 @@ export function VBTCamera({ onRepsChange }: Props) {
             )}
             <div className="space-y-2 rounded-lg border p-3">
               <div className="flex items-center justify-between">
-                <Label htmlFor="roion" className="text-sm">Area marker (kotak deteksi)</Label>
+                <Label htmlFor="roion" className="text-sm">Lingkaran plate (area deteksi)</Label>
                 <Switch id="roion" checked={roiOn} onCheckedChange={setRoiOn} />
               </div>
               {roiOn && (
                 <>
-                  <Label className="text-xs">Ukuran area: {roiSize} px</Label>
-                  <Slider
-                    value={[roiSize]}
-                    min={40}
-                    max={480}
-                    step={10}
-                    onValueChange={([v]) => setRoiSize(v)}
-                  />
+                  <Label className="text-xs">Diameter lingkaran: {roiSize} px</Label>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => setRoiSize((v) => Math.max(20, v - 10))}
+                    >
+                      −
+                    </Button>
+                    <Slider
+                      value={[roiSize]}
+                      min={20}
+                      max={480}
+                      step={5}
+                      onValueChange={([v]) => setRoiSize(v)}
+                    />
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => setRoiSize((v) => Math.min(480, v + 10))}
+                    >
+                      +
+                    </Button>
+                  </div>
                   <div className="flex items-center justify-between">
                     <Label htmlFor="roifollow" className="text-sm">Ikuti plate otomatis</Label>
                     <Switch id="roifollow" checked={roiFollow} onCheckedChange={setRoiFollow} />
@@ -773,15 +791,38 @@ export function VBTCamera({ onRepsChange }: Props) {
                     onClick={() => setRoiEdit((v) => !v)}
                   >
                     <Move className="h-4 w-4" />
-                    {roiEdit ? 'Selesai Atur Area' : 'Atur Area (geser & ubah ukuran)'}
+                    {roiEdit ? 'Selesai Atur Lingkaran' : 'Atur Lingkaran (geser & ubah ukuran)'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() => {
+                      const mpp = refDiameter / 100 / roiSize;
+                      if (!Number.isFinite(mpp) || mpp <= 0) {
+                        toast.error('Isi diameter referensi dulu');
+                        return;
+                      }
+                      setAutoScale(false);
+                      setManualScale(Number(mpp.toFixed(6)));
+                      scaleRef.current = mpp;
+                      setScale(mpp);
+                      toast.success(`Skala: ${(mpp * 1000).toFixed(2)} mm/px`, {
+                        description: `${roiSize} px = ${refDiameter} cm`,
+                      });
+                    }}
+                  >
+                    Kalibrasi dari Lingkaran
                   </Button>
                   <p className="text-[11px] text-muted-foreground">
-                    Aktifkan "Atur Area" lalu seret kotak untuk memindahkan, atau tarik sudutnya untuk
-                    memperbesar/memperkecil sesuai plate di video.
+                    Aktifkan "Atur Lingkaran", seret bagian tengah untuk memindahkan dan tarik tepinya
+                    untuk memperbesar/memperkecil sampai persis menutupi plate, lalu tekan "Kalibrasi
+                    dari Lingkaran".
                   </p>
                 </>
               )}
             </div>
+
 
             <div className="flex flex-wrap gap-2">
               <Button
