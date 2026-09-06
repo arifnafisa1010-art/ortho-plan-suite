@@ -556,7 +556,10 @@ export function VBTCamera({ onRepsChange }: Props) {
             {active && !target && !calibMode && (
               <div className="absolute bottom-2 left-2 right-2 rounded-md bg-background/85 px-3 py-2 text-xs">
                 Ketuk area marker (stiker warna terang) pada gambar untuk mengunci warna.
+              </div>
+            )}
           </div>
+
 
           {mode === 'video' && videoName && (
             <div className="space-y-2 rounded-lg border p-3">
