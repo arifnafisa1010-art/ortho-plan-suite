@@ -450,6 +450,39 @@ export function VBTCamera({ onRepsChange }: Props) {
     toast.info('Kalibrasi skala di-reset — plate akan diukur ulang otomatis.');
   };
 
+  const togglePlay = async () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) {
+      try {
+        await v.play();
+        setActive(true);
+      } catch {
+        setError('Video tidak dapat diputar.');
+      }
+    } else {
+      v.pause();
+    }
+  };
+
+  const seekTo = (t: number) => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.currentTime = t;
+    setVTime(t);
+    // buang sampel lama agar kecepatan tidak melonjak setelah lompat waktu
+    samplesRef.current = [];
+    lastRepAtRef.current = 0;
+  };
+
+  const fmtTime = (s: number) => {
+    if (!Number.isFinite(s)) return '0:00';
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${String(sec).padStart(2, '0')}`;
+  };
+
+
   const reset = () => {
     setReps([]);
     samplesRef.current = [];
