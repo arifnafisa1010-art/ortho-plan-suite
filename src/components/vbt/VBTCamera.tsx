@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Camera, CameraOff, Crosshair, Move, RotateCcw, Ruler, TriangleAlert, Upload } from 'lucide-react';
+import { Camera, CameraOff, Crosshair, Move, Pause, Play, RotateCcw, Ruler, SkipBack, TriangleAlert, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -419,6 +419,10 @@ export function VBTCamera({ onRepsChange }: Props) {
 
 
   const onPointerUp = () => {
+    if (roiDragRef.current) {
+      roiDragRef.current = null;
+      return;
+    }
     if (!calibMode || !calibStartRef.current || !calibLine) return;
     const len = Math.hypot(calibLine.x2 - calibLine.x1, calibLine.y2 - calibLine.y1);
     calibStartRef.current = null;
@@ -445,6 +449,39 @@ export function VBTCamera({ onRepsChange }: Props) {
     setLocked(false);
     toast.info('Kalibrasi skala di-reset — plate akan diukur ulang otomatis.');
   };
+
+  const togglePlay = async () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) {
+      try {
+        await v.play();
+        setActive(true);
+      } catch {
+        setError('Video tidak dapat diputar.');
+      }
+    } else {
+      v.pause();
+    }
+  };
+
+  const seekTo = (t: number) => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.currentTime = t;
+    setVTime(t);
+    // buang sampel lama agar kecepatan tidak melonjak setelah lompat waktu
+    samplesRef.current = [];
+    lastRepAtRef.current = 0;
+  };
+
+  const fmtTime = (s: number) => {
+    if (!Number.isFinite(s)) return '0:00';
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${String(sec).padStart(2, '0')}`;
+  };
+
 
   const reset = () => {
     setReps([]);
@@ -476,7 +513,18 @@ export function VBTCamera({ onRepsChange }: Props) {
               playsInline
               muted
               className="hidden"
-              onEnded={() => setActive(false)}
+              onLoadedMetadata={(e) => {
+                const v = e.currentTarget;
+                setVDur(Number.isFinite(v.duration) ? v.duration : 0);
+                setVPaused(v.paused);
+              }}
+              onTimeUpdate={(e) => setVTime(e.currentTarget.currentTime)}
+              onPlay={() => setVPaused(false)}
+              onPause={() => setVPaused(true)}
+              onEnded={() => {
+                setVPaused(true);
+                setActive(false);
+              }}
             />
             <canvas
               ref={canvasRef}
@@ -511,6 +559,36 @@ export function VBTCamera({ onRepsChange }: Props) {
               </div>
             )}
           </div>
+
+
+          {mode === 'video' && videoName && (
+            <div className="space-y-2 rounded-lg border p-3">
+              <div className="flex items-center gap-2">
+                <Button size="icon" variant="outline" onClick={togglePlay}>
+                  {vPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+                </Button>
+                <Button size="icon" variant="outline" onClick={() => seekTo(0)}>
+                  <SkipBack className="h-4 w-4" />
+                </Button>
+                <Slider
+                  className="flex-1"
+                  value={[Math.min(vTime, vDur || 0)]}
+                  min={0}
+                  max={vDur || 0.001}
+                  step={0.05}
+                  onValueChange={([v]) => seekTo(v)}
+                />
+                <span className="w-20 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+                  {fmtTime(vTime)} / {fmtTime(vDur)}
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Jeda video untuk mengatur area marker & mengukur diameter plate dengan presisi.
+              </p>
+            </div>
+          )}
+
+
 
 
           {error && (
@@ -680,8 +758,18 @@ export function VBTCamera({ onRepsChange }: Props) {
                     <Label htmlFor="roifollow" className="text-sm">Ikuti plate otomatis</Label>
                     <Switch id="roifollow" checked={roiFollow} onCheckedChange={setRoiFollow} />
                   </div>
+                  <Button
+                    size="sm"
+                    variant={roiEdit ? 'default' : 'outline'}
+                    className="w-full gap-2"
+                    onClick={() => setRoiEdit((v) => !v)}
+                  >
+                    <Move className="h-4 w-4" />
+                    {roiEdit ? 'Selesai Atur Area' : 'Atur Area (geser & ubah ukuran)'}
+                  </Button>
                   <p className="text-[11px] text-muted-foreground">
-                    Kecilkan area agar hanya plate yang terbaca — ketuk gambar untuk memindahkan kotak.
+                    Aktifkan "Atur Area" lalu seret kotak untuk memindahkan, atau tarik sudutnya untuk
+                    memperbesar/memperkecil sesuai plate di video.
                   </p>
                 </>
               )}
