@@ -480,7 +480,18 @@ export function VBTCamera({ onRepsChange }: Props) {
               playsInline
               muted
               className="hidden"
-              onEnded={() => setActive(false)}
+              onLoadedMetadata={(e) => {
+                const v = e.currentTarget;
+                setVDur(Number.isFinite(v.duration) ? v.duration : 0);
+                setVPaused(v.paused);
+              }}
+              onTimeUpdate={(e) => setVTime(e.currentTarget.currentTime)}
+              onPlay={() => setVPaused(false)}
+              onPause={() => setVPaused(true)}
+              onEnded={() => {
+                setVPaused(true);
+                setActive(false);
+              }}
             />
             <canvas
               ref={canvasRef}
