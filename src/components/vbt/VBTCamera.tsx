@@ -161,18 +161,23 @@ export function VBTCamera({ onRepsChange }: Props) {
       : null;
 
     if (roi) {
+      const r = roiSize / 2;
       octx.strokeStyle = calibMode ? '#f59e0b' : roiEdit ? '#38bdf8' : '#a3e635';
       octx.lineWidth = 2;
       octx.setLineDash([6, 4]);
-      octx.strokeRect(roi.x, roi.y, roi.w, roi.h);
+      octx.beginPath();
+      octx.arc(roiCenter.x, roiCenter.y, r, 0, Math.PI * 2);
+      octx.stroke();
       octx.setLineDash([]);
       if (roiEdit) {
-        // gagang untuk memperbesar / memperkecil area
+        // gagang untuk memperbesar / memperkecil lingkaran plate
         octx.fillStyle = '#38bdf8';
-        octx.fillRect(roi.x + roi.w - 8, roi.y + roi.h - 8, 12, 12);
-        octx.fillRect(roi.x - 4, roi.y - 4, 12, 12);
+        octx.fillRect(roiCenter.x + r - 6, roiCenter.y - 6, 12, 12);
+        octx.fillRect(roiCenter.x - 6, roiCenter.y + r - 6, 12, 12);
+        octx.fillRect(roiCenter.x - 3, roiCenter.y - 3, 6, 6);
       }
     }
+
 
 
     if (target) {
@@ -234,7 +239,9 @@ export function VBTCamera({ onRepsChange }: Props) {
         octx.strokeStyle = '#22d3ee';
         octx.lineWidth = 2;
         octx.beginPath();
-        octx.arc(blob.x, blob.y, Math.max(8, size / 2), 0, Math.PI * 2);
+        const drawR = Math.min(roiOn ? roiSize / 2 : 120, Math.max(8, size / 2));
+        octx.arc(blob.x, blob.y, drawR, 0, Math.PI * 2);
+
         octx.stroke();
         octx.beginPath();
         octx.moveTo(0, blob.y);
@@ -387,12 +394,12 @@ export function VBTCamera({ onRepsChange }: Props) {
       setCalibLine({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
       e.currentTarget.setPointerCapture(e.pointerId);
     } else if (roiOn && roiEdit) {
-      const half = roiSize / 2;
-      const nearCorner =
-        Math.hypot(p.x - (roiCenter.x + half), p.y - (roiCenter.y + half)) < 22 ||
-        Math.hypot(p.x - (roiCenter.x - half), p.y - (roiCenter.y - half)) < 22;
-      roiDragRef.current = nearCorner ? 'resize' : 'move';
-      if (!nearCorner) setRoiCenter(p);
+      const r = roiSize / 2;
+      const dist = Math.hypot(p.x - roiCenter.x, p.y - roiCenter.y);
+      // dekat lingkaran tepi -> ubah ukuran, di dalam -> geser
+      const nearEdge = Math.abs(dist - r) < Math.max(14, r * 0.25);
+      roiDragRef.current = nearEdge ? 'resize' : 'move';
+      if (!nearEdge) setRoiCenter(p);
       e.currentTarget.setPointerCapture(e.pointerId);
     } else {
       pickColor(p.x, p.y);
@@ -406,11 +413,12 @@ export function VBTCamera({ onRepsChange }: Props) {
       if (roiDragRef.current === 'move') {
         setRoiCenter(p);
       } else {
-        const d = Math.max(Math.abs(p.x - roiCenter.x), Math.abs(p.y - roiCenter.y)) * 2;
-        setRoiSize(Math.round(Math.min(480, Math.max(30, d))));
+        const d = Math.hypot(p.x - roiCenter.x, p.y - roiCenter.y) * 2;
+        setRoiSize(Math.round(Math.min(480, Math.max(20, d))));
       }
       return;
     }
+
     if (!calibMode || !calibStartRef.current) return;
     const s = calibStartRef.current;
     setCalibLine({ x1: s.x, y1: s.y, x2: p.x, y2: p.y });
@@ -741,19 +749,37 @@ export function VBTCamera({ onRepsChange }: Props) {
             )}
             <div className="space-y-2 rounded-lg border p-3">
               <div className="flex items-center justify-between">
-                <Label htmlFor="roion" className="text-sm">Area marker (kotak deteksi)</Label>
+                <Label htmlFor="roion" className="text-sm">Lingkaran plate (area deteksi)</Label>
                 <Switch id="roion" checked={roiOn} onCheckedChange={setRoiOn} />
               </div>
               {roiOn && (
                 <>
-                  <Label className="text-xs">Ukuran area: {roiSize} px</Label>
-                  <Slider
-                    value={[roiSize]}
-                    min={40}
-                    max={480}
-                    step={10}
-                    onValueChange={([v]) => setRoiSize(v)}
-                  />
+                  <Label className="text-xs">Diameter lingkaran: {roiSize} px</Label>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => setRoiSize((v) => Math.max(20, v - 10))}
+                    >
+                      −
+                    </Button>
+                    <Slider
+                      value={[roiSize]}
+                      min={20}
+                      max={480}
+                      step={5}
+                      onValueChange={([v]) => setRoiSize(v)}
+                    />
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => setRoiSize((v) => Math.min(480, v + 10))}
+                    >
+                      +
+                    </Button>
+                  </div>
                   <div className="flex items-center justify-between">
                     <Label htmlFor="roifollow" className="text-sm">Ikuti plate otomatis</Label>
                     <Switch id="roifollow" checked={roiFollow} onCheckedChange={setRoiFollow} />
@@ -765,15 +791,38 @@ export function VBTCamera({ onRepsChange }: Props) {
                     onClick={() => setRoiEdit((v) => !v)}
                   >
                     <Move className="h-4 w-4" />
-                    {roiEdit ? 'Selesai Atur Area' : 'Atur Area (geser & ubah ukuran)'}
+                    {roiEdit ? 'Selesai Atur Lingkaran' : 'Atur Lingkaran (geser & ubah ukuran)'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() => {
+                      const mpp = refDiameter / 100 / roiSize;
+                      if (!Number.isFinite(mpp) || mpp <= 0) {
+                        toast.error('Isi diameter referensi dulu');
+                        return;
+                      }
+                      setAutoScale(false);
+                      setManualScale(Number(mpp.toFixed(6)));
+                      scaleRef.current = mpp;
+                      setScale(mpp);
+                      toast.success(`Skala: ${(mpp * 1000).toFixed(2)} mm/px`, {
+                        description: `${roiSize} px = ${refDiameter} cm`,
+                      });
+                    }}
+                  >
+                    Kalibrasi dari Lingkaran
                   </Button>
                   <p className="text-[11px] text-muted-foreground">
-                    Aktifkan "Atur Area" lalu seret kotak untuk memindahkan, atau tarik sudutnya untuk
-                    memperbesar/memperkecil sesuai plate di video.
+                    Aktifkan "Atur Lingkaran", seret bagian tengah untuk memindahkan dan tarik tepinya
+                    untuk memperbesar/memperkecil sampai persis menutupi plate, lalu tekan "Kalibrasi
+                    dari Lingkaran".
                   </p>
                 </>
               )}
             </div>
+
 
             <div className="flex flex-wrap gap-2">
               <Button
