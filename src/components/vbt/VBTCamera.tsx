@@ -758,8 +758,18 @@ export function VBTCamera({ onRepsChange }: Props) {
                     <Label htmlFor="roifollow" className="text-sm">Ikuti plate otomatis</Label>
                     <Switch id="roifollow" checked={roiFollow} onCheckedChange={setRoiFollow} />
                   </div>
+                  <Button
+                    size="sm"
+                    variant={roiEdit ? 'default' : 'outline'}
+                    className="w-full gap-2"
+                    onClick={() => setRoiEdit((v) => !v)}
+                  >
+                    <Move className="h-4 w-4" />
+                    {roiEdit ? 'Selesai Atur Area' : 'Atur Area (geser & ubah ukuran)'}
+                  </Button>
                   <p className="text-[11px] text-muted-foreground">
-                    Kecilkan area agar hanya plate yang terbaca — ketuk gambar untuk memindahkan kotak.
+                    Aktifkan "Atur Area" lalu seret kotak untuk memindahkan, atau tarik sudutnya untuk
+                    memperbesar/memperkecil sesuai plate di video.
                   </p>
                 </>
               )}
