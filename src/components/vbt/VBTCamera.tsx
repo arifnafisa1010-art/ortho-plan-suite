@@ -161,18 +161,23 @@ export function VBTCamera({ onRepsChange }: Props) {
       : null;
 
     if (roi) {
+      const r = roiSize / 2;
       octx.strokeStyle = calibMode ? '#f59e0b' : roiEdit ? '#38bdf8' : '#a3e635';
       octx.lineWidth = 2;
       octx.setLineDash([6, 4]);
-      octx.strokeRect(roi.x, roi.y, roi.w, roi.h);
+      octx.beginPath();
+      octx.arc(roiCenter.x, roiCenter.y, r, 0, Math.PI * 2);
+      octx.stroke();
       octx.setLineDash([]);
       if (roiEdit) {
-        // gagang untuk memperbesar / memperkecil area
+        // gagang untuk memperbesar / memperkecil lingkaran plate
         octx.fillStyle = '#38bdf8';
-        octx.fillRect(roi.x + roi.w - 8, roi.y + roi.h - 8, 12, 12);
-        octx.fillRect(roi.x - 4, roi.y - 4, 12, 12);
+        octx.fillRect(roiCenter.x + r - 6, roiCenter.y - 6, 12, 12);
+        octx.fillRect(roiCenter.x - 6, roiCenter.y + r - 6, 12, 12);
+        octx.fillRect(roiCenter.x - 3, roiCenter.y - 3, 6, 6);
       }
     }
+
 
 
     if (target) {
