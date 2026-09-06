@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Camera, CameraOff, Crosshair, Move, RotateCcw, Ruler, TriangleAlert, Upload } from 'lucide-react';
+import { Camera, CameraOff, Crosshair, Move, Pause, Play, RotateCcw, Ruler, SkipBack, TriangleAlert, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
