@@ -239,7 +239,9 @@ export function VBTCamera({ onRepsChange }: Props) {
         octx.strokeStyle = '#22d3ee';
         octx.lineWidth = 2;
         octx.beginPath();
-        octx.arc(blob.x, blob.y, Math.max(8, size / 2), 0, Math.PI * 2);
+        const drawR = Math.min(roiOn ? roiSize / 2 : 120, Math.max(8, size / 2));
+        octx.arc(blob.x, blob.y, drawR, 0, Math.PI * 2);
+
         octx.stroke();
         octx.beginPath();
         octx.moveTo(0, blob.y);
