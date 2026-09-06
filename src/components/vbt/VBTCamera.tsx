@@ -419,6 +419,10 @@ export function VBTCamera({ onRepsChange }: Props) {
 
 
   const onPointerUp = () => {
+    if (roiDragRef.current) {
+      roiDragRef.current = null;
+      return;
+    }
     if (!calibMode || !calibStartRef.current || !calibLine) return;
     const len = Math.hypot(calibLine.x2 - calibLine.x1, calibLine.y2 - calibLine.y1);
     calibStartRef.current = null;
