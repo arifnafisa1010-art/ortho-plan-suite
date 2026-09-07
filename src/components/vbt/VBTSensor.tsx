@@ -230,20 +230,40 @@ export function VBTSensor({ onRepsChange }: Props) {
           {running && <Badge variant="secondary">Merekam · {reps.length} rep</Badge>}
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-lg border bg-muted/30 p-3">
-            <VelocityGauge
-              value={running ? Math.abs(liveV) : lastRep?.mpv ?? 0}
-              label={running ? 'Kecepatan langsung' : 'MPV rep terakhir'}
-              sublabel={lastRep ? `Rep #${lastRep.index} · ${velocityZone(lastRep.mpv).label}` : 'Belum ada rep'}
-            />
-          </div>
-          <div className="rounded-lg border bg-muted/30 p-3">
-            <VelocityGauge
-              value={lastRep?.peak ?? 0}
-              label="Peak velocity rep terakhir"
-              sublabel={lastRep ? `MPV ${lastRep.mpv.toFixed(2)} m/s · ROM ${(lastRep.rom * 100).toFixed(0)} cm` : '—'}
-            />
+        <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
+          <VelocityGauge
+            value={gauge.value}
+            max={gauge.max}
+            unit={gauge.unit}
+            decimals={gauge.decimals}
+            showZones={gauge.showZones}
+            label={gauge.label}
+            sublabel={gauge.sublabel}
+          />
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Metrik ditampilkan</Label>
+              <Select value={metric} onValueChange={(v) => setMetric(v as MetricId)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {METRICS.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Beban (kg) — untuk hitung power</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={loadKg}
+                onChange={(e) => setLoadKg(e.target.value)}
+                placeholder="contoh: 60"
+              />
+            </div>
           </div>
         </div>
 
@@ -252,11 +272,15 @@ export function VBTSensor({ onRepsChange }: Props) {
           <Metric label="Akselerasi" value={`${liveA.toFixed(2)} m/s²`} />
           <Metric label="MPV terakhir" value={lastRep ? `${lastRep.mpv.toFixed(2)} m/s` : '—'} />
           <Metric label="Best MPV" value={bestMpv ? `${bestMpv.toFixed(2)} m/s` : '—'} />
+          <Metric label="Peak velocity" value={lastRep ? `${lastRep.peak.toFixed(2)} m/s` : '—'} />
+          <Metric label="Avg velocity set" value={avgMpv ? `${avgMpv.toFixed(2)} m/s` : '—'} />
+          <Metric label="Power rata-rata" value={mass ? `${meanPower.toFixed(0)} W` : 'isi beban'} />
+          <Metric label="Peak power" value={mass ? `${peakPower.toFixed(0)} W` : 'isi beban'} />
         </div>
 
         {reps.length > 0 && (
           <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Kecepatan tiap repetisi (MPV)</p>
+            <p className="text-xs text-muted-foreground">Tiap repetisi</p>
             <div className="flex flex-wrap gap-2">
               {reps.map((r) => (
                 <span
@@ -264,7 +288,9 @@ export function VBTSensor({ onRepsChange }: Props) {
                   className="rounded-md border bg-background px-2 py-1 text-xs"
                 >
                   <span className="text-muted-foreground">#{r.index}</span>{' '}
-                  <span className="font-semibold">{r.mpv.toFixed(2)}</span> m/s
+                  <span className="font-semibold">{r.mpv.toFixed(2)}</span> m/s · peak{' '}
+                  {r.peak.toFixed(2)} · ROM {(r.rom * 100).toFixed(0)} cm
+                  {mass ? ` · ${(mass * G * r.mpv).toFixed(0)} W` : ''}
                 </span>
               ))}
             </div>
