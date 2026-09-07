@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { velocityLossPercent, velocityZone, type VbtRep } from '@/lib/vbt';
+import { VelocityGauge } from '@/components/vbt/VelocityGauge';
 
 interface Props {
   onRepsChange?: (reps: VbtRep[]) => void;
@@ -229,12 +230,46 @@ export function VBTSensor({ onRepsChange }: Props) {
           {running && <Badge variant="secondary">Merekam · {reps.length} rep</Badge>}
         </div>
 
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-lg border bg-muted/30 p-3">
+            <VelocityGauge
+              value={running ? Math.abs(liveV) : lastRep?.mpv ?? 0}
+              label={running ? 'Kecepatan langsung' : 'MPV rep terakhir'}
+              sublabel={lastRep ? `Rep #${lastRep.index} · ${velocityZone(lastRep.mpv).label}` : 'Belum ada rep'}
+            />
+          </div>
+          <div className="rounded-lg border bg-muted/30 p-3">
+            <VelocityGauge
+              value={lastRep?.peak ?? 0}
+              label="Peak velocity rep terakhir"
+              sublabel={lastRep ? `MPV ${lastRep.mpv.toFixed(2)} m/s · ROM ${(lastRep.rom * 100).toFixed(0)} cm` : '—'}
+            />
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <Metric label="Kecepatan live" value={`${liveV.toFixed(2)} m/s`} />
           <Metric label="Akselerasi" value={`${liveA.toFixed(2)} m/s²`} />
           <Metric label="MPV terakhir" value={lastRep ? `${lastRep.mpv.toFixed(2)} m/s` : '—'} />
           <Metric label="Best MPV" value={bestMpv ? `${bestMpv.toFixed(2)} m/s` : '—'} />
         </div>
+
+        {reps.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">Kecepatan tiap repetisi (MPV)</p>
+            <div className="flex flex-wrap gap-2">
+              {reps.map((r) => (
+                <span
+                  key={r.index}
+                  className="rounded-md border bg-background px-2 py-1 text-xs"
+                >
+                  <span className="text-muted-foreground">#{r.index}</span>{' '}
+                  <span className="font-semibold">{r.mpv.toFixed(2)}</span> m/s
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div
           className={cn(
