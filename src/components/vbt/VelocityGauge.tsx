@@ -1,10 +1,12 @@
-import { velocityZone } from '@/lib/vbt';
-
 interface Props {
-  /** kecepatan saat ini (m/s) */
+  /** nilai saat ini */
   value: number;
-  /** kecepatan maksimum skala */
+  /** nilai maksimum skala */
   max?: number;
+  unit?: string;
+  decimals?: number;
+  /** tampilkan zona warna load-velocity (khusus satuan m/s) */
+  showZones?: boolean;
   label?: string;
   sublabel?: string;
 }
@@ -37,16 +39,30 @@ function arc(fromVal: number, toVal: number, max: number, radius: number) {
   return `M ${p0.x} ${p0.y} A ${radius} ${radius} 0 ${large} 1 ${p1.x} ${p1.y}`;
 }
 
-/** Spidometer kecepatan angkat (m/s) dengan zona warna load-velocity. */
-export function VelocityGauge({ value, max = 2, label = 'Kecepatan', sublabel }: Props) {
+/** Spidometer serbaguna untuk metrik VBT (kecepatan, power, ROM). */
+export function VelocityGauge({
+  value,
+  max = 2,
+  unit = 'm/s',
+  decimals = 2,
+  showZones = true,
+  label = 'Kecepatan',
+  sublabel,
+}: Props) {
   const v = Math.max(0, Math.min(max, Number.isFinite(value) ? value : 0));
   const angle = START + (v / max) * SWEEP;
   const needle = polar(angle, R - 16);
-  const zone = velocityZone(v);
+  const gradientId = `gauge-grad-${unit.replace(/[^a-z]/gi, '')}`;
 
   return (
     <div className="flex flex-col items-center">
-      <svg viewBox="0 0 200 165" className="w-full max-w-[260px]">
+      <svg viewBox="0 0 200 165" className="w-full max-w-[280px]">
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="hsl(199 89% 48%)" />
+            <stop offset="100%" stopColor="hsl(142 71% 45%)" />
+          </linearGradient>
+        </defs>
         <path
           d={arc(0, max, max, R)}
           fill="none"
@@ -54,16 +70,28 @@ export function VelocityGauge({ value, max = 2, label = 'Kecepatan', sublabel }:
           strokeWidth={14}
           strokeLinecap="round"
         />
-        {ZONES.map((z) => (
-          <path
-            key={z.name}
-            d={arc(z.from, z.to, max, R)}
-            fill="none"
-            stroke={z.color}
-            strokeWidth={14}
-            opacity={0.85}
-          />
-        ))}
+        {showZones ? (
+          ZONES.map((z) => (
+            <path
+              key={z.name}
+              d={arc(z.from, z.to, max, R)}
+              fill="none"
+              stroke={z.color}
+              strokeWidth={14}
+              opacity={0.85}
+            />
+          ))
+        ) : (
+          v > 0 && (
+            <path
+              d={arc(0, v, max, R)}
+              fill="none"
+              stroke={`url(#${gradientId})`}
+              strokeWidth={14}
+              strokeLinecap="round"
+            />
+          )
+        )}
         {Array.from({ length: 9 }, (_, i) => (i * max) / 8).map((tv) => {
           const a = START + (tv / max) * SWEEP;
           const p1 = polar(a, R - 10);
@@ -98,7 +126,7 @@ export function VelocityGauge({ value, max = 2, label = 'Kecepatan', sublabel }:
           className="fill-foreground"
           style={{ fontSize: 26, fontWeight: 700 }}
         >
-          {v.toFixed(2)}
+          {v.toFixed(decimals)}
         </text>
         <text
           x={CX}
@@ -107,11 +135,11 @@ export function VelocityGauge({ value, max = 2, label = 'Kecepatan', sublabel }:
           className="fill-muted-foreground"
           style={{ fontSize: 11 }}
         >
-          m/s
+          {unit}
         </text>
       </svg>
       <p className="text-sm font-semibold">{label}</p>
-      <p className="text-xs text-muted-foreground text-center">{sublabel ?? zone.label}</p>
+      {sublabel && <p className="text-xs text-muted-foreground text-center">{sublabel}</p>}
     </div>
   );
 }
