@@ -30,6 +30,19 @@ interface MotionEventCtor {
 const MIN_ROM = 0.12; // m
 const MIN_DURATION = 0.15; // s
 const V_START = 0.12; // m/s
+const G = 9.81;
+
+type MetricId = 'live' | 'mpv' | 'peak' | 'avg' | 'power' | 'peakPower' | 'rom';
+
+const METRICS: { id: MetricId; label: string }[] = [
+  { id: 'live', label: 'Kecepatan langsung' },
+  { id: 'mpv', label: 'Mean velocity (MPV) rep terakhir' },
+  { id: 'peak', label: 'Peak velocity rep terakhir' },
+  { id: 'avg', label: 'Average velocity (rata-rata set)' },
+  { id: 'power', label: 'Power rata-rata (W)' },
+  { id: 'peakPower', label: 'Peak power (W)' },
+  { id: 'rom', label: 'Range of motion (cm)' },
+];
 
 /**
  * VBT berbasis sensor gerak HP (accelerometer/IMU).
