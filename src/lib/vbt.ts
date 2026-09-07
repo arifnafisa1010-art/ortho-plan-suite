@@ -277,6 +277,27 @@ export function median(values: number[]): number {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
 
+/* ------------------------------------------------------------------ */
+/* Konversi set VBT -> beban latihan (TSS) untuk ACWR                   */
+/* ------------------------------------------------------------------ */
+
+/** Estimasi RPE (1-10) dari velocity loss sebuah set. */
+export function rpeFromVelocityLoss(velocityLoss: number): number {
+  const vl = Math.max(0, velocityLoss);
+  if (vl < 10) return 6;
+  if (vl < 15) return 7;
+  if (vl < 20) return 8;
+  if (vl < 30) return 9;
+  return 10;
+}
+
+/** Estimasi durasi kerja+istirahat sebuah set VBT (menit). */
+export function durationFromReps(reps: VbtRep[]): number {
+  const work = reps.reduce((s, r) => s + (r.duration || 1) * 3, 0); // konsentrik + eksentrik
+  const rest = 120; // istirahat antar set (detik)
+  return Math.max(2, Math.round((work + rest) / 60));
+}
+
 /** Skala meter/piksel dari panjang garis kalibrasi manual (px) di canvas. */
 export function scaleFromLine(pixelLength: number, realCm: number): number | null {
   if (pixelLength < 4 || realCm <= 0) return null;

@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { velocityLossPercent, velocityZone, type VbtRep } from '@/lib/vbt';
+import { VelocityGauge } from '@/components/vbt/VelocityGauge';
 
 interface Props {
   onRepsChange?: (reps: VbtRep[]) => void;
