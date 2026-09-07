@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import type { VbtRep } from '@/lib/vbt';
+import { durationFromReps, rpeFromVelocityLoss, type VbtRep } from '@/lib/vbt';
+import { calculateSessionLoad } from '@/hooks/useTrainingLoads';
 
 export interface VbtSet {
   id: string;
@@ -112,7 +113,26 @@ export function useVbtSets(athleteId?: string | null) {
         toast.error('Gagal menyimpan set VBT');
         return null;
       }
-      toast.success('Set VBT tersimpan & masuk ke Peta Otot');
+
+      // Otomatis catat sebagai beban latihan (TSS) agar masuk ACWR mingguan
+      const rpe = rpeFromVelocityLoss(vLoss);
+      const durationMinutes = durationFromReps(input.reps);
+      const sessionLoad = calculateSessionLoad(durationMinutes, rpe);
+      const { error: loadError } = await supabase.from('training_loads').insert({
+        user_id: user.id,
+        athlete_id: input.athleteId,
+        session_date: input.sessionDate,
+        duration_minutes: durationMinutes,
+        rpe,
+        session_load: sessionLoad,
+        training_type: 'strength',
+        notes: `VBT ${input.exerciseName}${input.loadKg ? ` ${input.loadKg} kg` : ''} · ${input.reps.length} rep · best MPV ${best.toFixed(2)} m/s · VL ${vLoss.toFixed(0)}%`,
+      });
+      if (loadError) console.error('Gagal sinkron TSS dari VBT:', loadError);
+
+      toast.success('Set VBT tersimpan', {
+        description: `Masuk Peta Otot & beban latihan ${sessionLoad} TSS (RPE ${rpe}, ${durationMinutes} menit).`,
+      });
       await load();
       return data;
     },
