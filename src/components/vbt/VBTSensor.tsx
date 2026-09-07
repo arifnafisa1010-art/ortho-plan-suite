@@ -74,6 +74,54 @@ export function VBTSensor({ onRepsChange }: Props) {
   const overCutoff = !!lastRep && vLoss >= cutoff;
   const zone = lastRep ? velocityZone(lastRep.mpv) : null;
 
+  const avgMpv = reps.length ? reps.reduce((s, r) => s + r.mpv, 0) / reps.length : 0;
+  const mass = Number(loadKg) > 0 ? Number(loadKg) : 0;
+  const meanPower = mass * G * (lastRep?.mpv ?? 0);
+  const peakPower = mass * G * (reps.length ? Math.max(...reps.map((r) => r.peak)) : 0);
+  const lastRom = (lastRep?.rom ?? 0) * 100;
+
+  const gauge = (() => {
+    switch (metric) {
+      case 'mpv':
+        return {
+          value: lastRep?.mpv ?? 0, max: 2, unit: 'm/s', decimals: 2, showZones: true,
+          label: 'Mean velocity (MPV)',
+          sublabel: lastRep ? `Rep #${lastRep.index} · ${velocityZone(lastRep.mpv).label}` : 'Belum ada rep',
+        };
+      case 'peak':
+        return {
+          value: lastRep?.peak ?? 0, max: 3, unit: 'm/s', decimals: 2, showZones: false,
+          label: 'Peak velocity', sublabel: lastRep ? `Rep #${lastRep.index}` : 'Belum ada rep',
+        };
+      case 'avg':
+        return {
+          value: avgMpv, max: 2, unit: 'm/s', decimals: 2, showZones: true,
+          label: 'Average velocity set', sublabel: `${reps.length} rep`,
+        };
+      case 'power':
+        return {
+          value: meanPower, max: 2000, unit: 'W', decimals: 0, showZones: false,
+          label: 'Power rata-rata', sublabel: mass ? `${mass} kg × ${(lastRep?.mpv ?? 0).toFixed(2)} m/s` : 'Isi beban dulu',
+        };
+      case 'peakPower':
+        return {
+          value: peakPower, max: 3000, unit: 'W', decimals: 0, showZones: false,
+          label: 'Peak power', sublabel: mass ? `${mass} kg × peak velocity` : 'Isi beban dulu',
+        };
+      case 'rom':
+        return {
+          value: lastRom, max: 120, unit: 'cm', decimals: 0, showZones: false,
+          label: 'Range of motion', sublabel: lastRep ? `Rep #${lastRep.index}` : 'Belum ada rep',
+        };
+      default:
+        return {
+          value: running ? Math.abs(liveV) : lastRep?.mpv ?? 0, max: 2, unit: 'm/s', decimals: 2,
+          showZones: true, label: running ? 'Kecepatan langsung' : 'MPV rep terakhir',
+          sublabel: lastRep ? `Rep #${lastRep.index} · ${velocityZone(lastRep.mpv).label}` : 'Belum ada rep',
+        };
+    }
+  })();
+
   useEffect(() => {
     setSupported(typeof window !== 'undefined' && 'DeviceMotionEvent' in window);
   }, []);
